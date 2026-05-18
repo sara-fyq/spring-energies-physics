@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulación: Muelle y Energía Mecánica — 4ESO</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --panel: #13161e;
+    --border: #1e2330;
+    --accent: #e8c84a;
+    --accent2: #4ae8b0;
+    --accent3: #e84a7a;
+    --text: #d4dbe8;
+    --text-dim: #6b7590;
+    --spring-color: #4ae8b0;
+    --ball-color: #e8c84a;
+    --Ep-color: #e84a7a;
+    --Ek-color: #4ae8b0;
+    --Em-color: #e8c84a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 1100px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .watermark {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  header p {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .layout {
+    width: 100%;
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+  }
+
+  /* ─── CANVAS ─── */
+  #simCanvas {
+    width: 100%;
+    height: 220px;
+    border-radius: 4px;
+    display: block;
+    background: #0a0c10;
+  }
+
+  /* ─── CONTROLS ─── */
+  .controls {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 6px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .btn:hover { background: var(--accent); color: #000; }
+  .btn.secondary { border-color: var(--accent2); color: var(--accent2); }
+  .btn.secondary:hover { background: var(--accent2); color: #000; }
+  .btn.danger { border-color: var(--accent3); color: var(--accent3); }
+  .btn.danger:hover { background: var(--accent3); color: #fff; }
+
+  .speed-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .speed-group span { font-size: 0.7rem; color: var(--text-dim); margin-right: 4px; }
+  .speed-btn {
+    background: var(--border);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .speed-btn.active, .speed-btn:hover { border-color: var(--accent); color: var(--accent); background: #1a1d28; }
+
+  /* ─── TIME SLIDER ─── */
+  .slider-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .slider-row label { font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; }
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 3px;
+    cursor: pointer;
+  }
+  .slider-val { font-size: 0.7rem; color: var(--accent); min-width: 48px; text-align: right; }
+
+  /* ─── PARAMS ─── */
+  .params-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .param-block label {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+  }
+
+  .param-block .symbol {
+    font-size: 0.85rem;
+    color: var(--accent);
+    display: inline-block;
+    width: 60px;
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .param-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
+  .param-input {
+    background: #0d0f14;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    width: 68px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    text-align: right;
+    transition: border-color 0.15s;
+  }
+  .param-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ─── ENERGY DISPLAY ─── */
+  .energy-panel { margin-top: 16px; }
+
+  .energy-panel h3 {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .energy-bars { display: flex; flex-direction: column; gap: 8px; }
+
+  .ebar { display: flex; align-items: center; gap: 8px; }
+  .ebar-label { font-size: 0.68rem; width: 28px; }
+  .ebar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .ebar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.05s linear;
+  }
+  .ebar-val { font-size: 0.68rem; width: 64px; text-align: right; }
+
+  /* ─── GRAPH ─── */
+  #graphCanvas {
+    width: 100%;
+    height: 160px;
+    display: block;
+    background: #0a0c10;
+    border-radius: 4px;
+    margin-top: 14px;
+  }
+
+  /* ─── WOLFRAM BUTTONS ─── */
+  .wolfram-section { margin-top: 14px; }
+  .wolfram-section h3 {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .wolfram-btns { display: flex; flex-direction: column; gap: 6px; }
+  .wolfram-btn {
+    display: block;
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid #3a3050;
+    color: #b090e8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 7px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    letter-spacing: 0.02em;
+  }
+  .wolfram-btn:hover { border-color: #b090e8; background: #1a1425; }
+  .wolfram-btn span { color: var(--text-dim); display: block; font-size: 0.62rem; margin-top: 1px; }
+
+  /* ─── INFO BOX ─── */
+  .info-box {
+    margin-top: 14px;
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 0.7rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+  .info-box strong { color: var(--accent2); }
+
+  /* ─── STATUS BAR ─── */
+  .status-bar {
+    margin-top: 10px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .status-bar .stat { display: flex; gap: 6px; }
+  .status-bar .stat-val { color: var(--accent); }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="watermark">SGM·F&amp;Q</span>
+  <h1>Muelle &amp; Energía Mecánica</h1>
+  <p>Simulación interactiva · Física 4ESO · Energía potencial elástica → cinética</p>
+</header>
+
+<div class="layout">
+
+  <!-- ══ LEFT COLUMN ══ -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Simulation canvas -->
+    <div class="panel">
+      <canvas id="simCanvas"></canvas>
+
+      <div class="controls">
+        <button class="btn" id="btnPlay">▶ PLAY</button>
+        <button class="btn danger" id="btnReset">↺ RESET</button>
+        <div class="speed-group">
+          <span>VELOCIDAD</span>
+          <button class="speed-btn active" data-speed="0.25">×0.25</button>
+          <button class="speed-btn" data-speed="0.5">×0.5</button>
+          <button class="speed-btn" data-speed="1">×1</button>
+        </div>
+      </div>
+
+      <div class="slider-row">
+        <label>TIEMPO</label>
+        <input type="range" id="timeSlider" min="0" max="1000" value="0" step="1">
+        <span class="slider-val" id="timeVal">t = 0.000 s</span>
+      </div>
+
+      <div class="status-bar" id="statusBar">
+        <div class="stat">x = <span class="stat-val" id="statX">—</span> m</div>
+        <div class="stat">v = <span class="stat-val" id="statV">—</span> m/s</div>
+        <div class="stat">Ep = <span class="stat-val" id="statEp">—</span> J</div>
+        <div class="stat">Ek = <span class="stat-val" id="statEk">—</span> J</div>
+        <div class="stat">Em = <span class="stat-val" id="statEm">—</span> J</div>
+      </div>
+    </div>
+
+    <!-- Energy graph -->
+    <div class="panel energy-panel">
+      <h3>Gráfica de energías en tiempo real</h3>
+      <canvas id="graphCanvas"></canvas>
+      <div style="display:flex;gap:18px;margin-top:8px;font-size:0.65rem;">
+        <span style="color:var(--Ep-color)">■ Ep elástica</span>
+        <span style="color:var(--Ek-color)">■ Ek cinética</span>
+        <span style="color:var(--Em-color)">■ Em mecánica</span>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div class="panel info-box">
+      <strong>¿Por qué la bola se separa en x = 0?</strong><br>
+      El muelle solo puede <em>empujar</em>, no tirar. En cuanto alcanza su longitud natural (elongación = 0), deja de ejercer fuerza sobre la bola. A partir de ese instante, toda la energía potencial elástica se ha convertido en energía cinética, y la bola se mueve con velocidad constante (sin rozamiento).
+    </div>
+
+  </div>
+
+  <!-- ══ RIGHT COLUMN ══ -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Parameters -->
+    <div class="panel params-grid">
+
+      <div class="param-block">
+        <label>MASA DE LA BOLA</label>
+        <div class="param-row">
+          <span class="symbol">m</span>
+          <input type="range" id="sliderM" min="0.1" max="2.0" step="0.05" value="0.5">
+          <input type="number" id="inputM" class="param-input" min="0.1" max="2.0" step="0.05" value="0.5"> kg
+        </div>
+      </div>
+
+      <div class="param-block">
+        <label>CONSTANTE DEL MUELLE</label>
+        <div class="param-row">
+          <span class="symbol">k</span>
+          <input type="range" id="sliderK" min="10" max="500" step="10" value="200">
+          <input type="number" id="inputK" class="param-input" min="10" max="500" step="10" value="200"> N/m
+        </div>
+      </div>
+
+      <div class="param-block">
+        <label>COMPRESIÓN INICIAL</label>
+        <div class="param-row">
+          <span class="symbol">x₀</span>
+          <input type="range" id="sliderX" min="0.01" max="0.30" step="0.01" value="0.10">
+          <input type="number" id="inputX" class="param-input" min="0.01" max="0.30" step="0.01" value="0.10"> m
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Energy bars -->
+    <div class="panel">
+      <h3 style="font-size:0.68rem;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Energías instantáneas</h3>
+      <div class="energy-bars">
+        <div class="ebar">
+          <span class="ebar-label" style="color:var(--Ep-color)">Ep</span>
+          <div class="ebar-track"><div class="ebar-fill" id="barEp" style="background:var(--Ep-color);width:100%"></div></div>
+          <span class="ebar-val" id="numEp" style="color:var(--Ep-color)">— J</span>
+        </div>
+        <div class="ebar">
+          <span class="ebar-label" style="color:var(--Ek-color)">Ek</span>
+          <div class="ebar-track"><div class="ebar-fill" id="barEk" style="background:var(--Ek-color);width:0%"></div></div>
+          <span class="ebar-val" id="numEk" style="color:var(--Ek-color)">— J</span>
+        </div>
+        <div class="ebar">
+          <span class="ebar-label" style="color:var(--Em-color)">Em</span>
+          <div class="ebar-track"><div class="ebar-fill" id="barEm" style="background:var(--Em-color);width:100%"></div></div>
+          <span class="ebar-val" id="numEm" style="color:var(--Em-color)">— J</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wolfram Alpha -->
+    <div class="panel wolfram-section">
+      <h3>Calcular con Wolfram Alpha</h3>
+      <div class="wolfram-btns" id="wolframBtns">
+        <!-- generated dynamically -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  PARAMETERS
+// ═══════════════════════════════════════════════════════
+let params = { m: 0.5, k: 200, x0: 0.10 };
+let simSpeed = 0.25;
+let isPlaying = false;
+let manualMode = false; // time slider dragged manually
+
+// Simulation state
+let simTime = 0;       // seconds
+const OMEGA_SCALE = 1; // can tweak
+let lastRaf = null;
+let lastTimestamp = null;
+
+// History for graph
+const MAX_HIST = 600;
+let history = { t: [], Ep: [], Ek: [], Em: [] };
+
+// ─── derived ───
+function getEm()    { return 0.5 * params.k * params.x0 * params.x0; }
+function getVmax()  { return params.x0 * Math.sqrt(params.k / params.m); }
+function getOmega() { return Math.sqrt(params.k / params.m); }
+
+// Phase duration: spring phase (0 → x0 compression released)
+// SHM: x(t) = x0 * cos(ω·t),  starts compressed, v(t) = -x0·ω·sin(ω·t)
+// Ball separates at t_sep = π/(2ω)  (quarter period)
+function getTsep() { return Math.PI / (2 * getOmega()); }
+
+// Position of ball tip at time t (only valid while in contact with spring)
+function springPhase(t) {
+  const omega = getOmega();
+  const tsep  = getTsep();
+  if (t <= tsep) {
+    const x = params.x0 * Math.cos(omega * t);      // elongation (compression left)
+    const v = -params.x0 * omega * Math.sin(omega * t); // velocity (→ positive)
+    return { x, v, contact: true };
+  } else {
+    // Free flight
+    const vmax = getVmax();
+    const tsep = getTsep();
+    return { x: 0, v: vmax, contact: false, dx: vmax * (t - tsep) };
+  }
+}
+
+function getEnergies(t) {
+  const s   = springPhase(t);
+  const Em  = getEm();
+  const Ep  = s.contact ? 0.5 * params.k * s.x * s.x : 0;
+  const Ek  = Em - Ep;
+  return { Ep, Ek, Em, v: s.v, x: s.x, contact: s.contact, dx: s.dx || 0 };
+}
+
+// ═══════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════
+const simCanvas   = document.getElementById('simCanvas');
+const simCtx      = simCanvas.getContext('2d');
+const graphCanvas = document.getElementById('graphCanvas');
+const graphCtx    = graphCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const pw = simCanvas.parentElement.clientWidth - 40;
+  simCanvas.width  = pw;
+  simCanvas.height = 220;
+  graphCanvas.width  = pw;
+  graphCanvas.height = 160;
+}
+window.addEventListener('resize', () => { resizeCanvases(); drawSim(simTime); drawGraph(); });
+resizeCanvases();
+
+// ═══════════════════════════════════════════════════════
+//  DRAW SIMULATION
+// ═══════════════════════════════════════════════════════
+function drawSim(t) {
+  const W = simCanvas.width, H = simCanvas.height;
+  const ctx = simCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = '#1a1d28';
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx < W; gx += 40) {
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+  }
+  for (let gy = 0; gy < H; gy += 40) {
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
+  const { Ep, Ek, Em, v, x, contact, dx } = getEnergies(t);
+
+  // Layout
+  const wallX   = 60;
+  const floorY  = H - 50;
+  const neutralX = wallX + 140; // natural length position of spring tip
+  const SCALE   = 500;          // px per meter (for spring compression)
+  const BALL_R  = 18;
+
+  // Wall
+  ctx.fillStyle = '#1e2330';
+  ctx.fillRect(0, 0, wallX, H);
+  // hatching
+  ctx.strokeStyle = '#2a2f42';
+  ctx.lineWidth = 1;
+  for (let i = -H; i < H; i += 14) {
+    ctx.beginPath();
+    ctx.moveTo(wallX, i);
+    ctx.lineTo(wallX - 18, i + 18);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#3a4055';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(wallX, 0); ctx.lineTo(wallX, H); ctx.stroke();
+
+  // Floor
+  ctx.strokeStyle = '#2a2f42';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(wallX, floorY + 2); ctx.lineTo(W, floorY + 2); ctx.stroke();
+
+  // Spring tip position
+  const compressPx = contact ? x * SCALE : 0;
+  const springTipX = neutralX - compressPx;
+
+  // Draw spring (zigzag)
+  drawSpring(ctx, wallX, floorY - BALL_R, springTipX, floorY - BALL_R);
+
+  // Natural length marker
+  ctx.strokeStyle = '#3a4055';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(neutralX, floorY - BALL_R - 28);
+  ctx.lineTo(neutralX, floorY + 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#3a4055';
+  ctx.font = '10px JetBrains Mono';
+  ctx.fillText('x = 0', neutralX + 4, floorY - BALL_R - 18);
+
+  // Ball position
+  let ballX;
+  if (contact) {
+    ballX = springTipX + BALL_R;
+  } else {
+    ballX = neutralX + BALL_R + dx * SCALE;
+  }
+  ballX = Math.min(ballX, W - BALL_R - 4);
+
+  // Velocity arrow
+  if (v > 0.001) {
+    const arrowLen = Math.min(v / getVmax() * 60, 60);
+    ctx.strokeStyle = '#4ae8b0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ballX + BALL_R, floorY - BALL_R);
+    ctx.lineTo(ballX + BALL_R + arrowLen, floorY - BALL_R);
+    ctx.stroke();
+    // arrowhead
+    ctx.fillStyle = '#4ae8b0';
+    ctx.beginPath();
+    ctx.moveTo(ballX + BALL_R + arrowLen + 8, floorY - BALL_R);
+    ctx.lineTo(ballX + BALL_R + arrowLen, floorY - BALL_R - 5);
+    ctx.lineTo(ballX + BALL_R + arrowLen, floorY - BALL_R + 5);
+    ctx.closePath();
+    ctx.fill();
+    // label
+    ctx.fillStyle = '#4ae8b0';
+    ctx.font = '11px JetBrains Mono';
+    ctx.fillText('v = ' + v.toFixed(2) + ' m/s', ballX + BALL_R + arrowLen - 10, floorY - BALL_R - 10);
+  }
+
+  // Compression bracket
+  if (contact && x > 0.005) {
+    const bY = floorY - BALL_R * 2 - 18;
+    ctx.strokeStyle = '#e84a7a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(springTipX + BALL_R, bY);
+    ctx.lineTo(neutralX, bY);
+    ctx.stroke();
+    // ticks
+    [[springTipX + BALL_R, bY], [neutralX, bY]].forEach(([px, py]) => {
+      ctx.beginPath(); ctx.moveTo(px, py - 5); ctx.lineTo(px, py + 5); ctx.stroke();
+    });
+    ctx.fillStyle = '#e84a7a';
+    ctx.font = '10px JetBrains Mono';
+    ctx.fillText('x = ' + x.toFixed(3) + ' m', (springTipX + BALL_R + neutralX) / 2 - 28, bY - 6);
+  }
+
+  // Ball
+  const grad = ctx.createRadialGradient(ballX - 5, floorY - BALL_R - 5, 2, ballX, floorY - BALL_R, BALL_R);
+  grad.addColorStop(0, '#fff5a0');
+  grad.addColorStop(0.5, '#e8c84a');
+  grad.addColorStop(1, '#7a5a00');
+  ctx.beginPath();
+  ctx.arc(ballX, floorY - BALL_R, BALL_R, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Separation flash
+  if (!contact && Math.abs(t - getTsep()) < 0.015) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(neutralX + BALL_R, floorY - BALL_R, BALL_R + 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Phase label
+  ctx.font = '11px JetBrains Mono';
+  ctx.fillStyle = contact ? '#e84a7a' : '#4ae8b0';
+  ctx.fillText(contact ? '● FASE: compresión → extensión' : '● FASE: vuelo libre (v = cte)', 16, 20);
+
+  // Time label
+  ctx.fillStyle = '#6b7590';
+  ctx.font = '10px JetBrains Mono';
+  ctx.fillText('t = ' + t.toFixed(3) + ' s', W - 100, 18);
+}
+
+function drawSpring(ctx, x1, y, x2, _y) {
+  const coils = 10;
+  const amp   = 12;
+  const len   = x2 - x1;
+  const step  = len / (coils * 2 + 2);
+
+  ctx.beginPath();
+  ctx.moveTo(x1, y);
+  ctx.lineTo(x1 + step, y);
+
+  for (let i = 0; i < coils * 2; i++) {
+    const px = x1 + step + i * step + step / 2;
+    const py = y + (i % 2 === 0 ? -amp : amp);
+    ctx.lineTo(px, py);
+  }
+  ctx.lineTo(x2, y);
+
+  ctx.strokeStyle = '#4ae8b0';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW GRAPH
+// ═══════════════════════════════════════════════════════
+function drawGraph() {
+  const W = graphCanvas.width, H = graphCanvas.height;
+  const ctx = graphCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  const Em   = getEm();
+  const tsep = getTsep();
+  const tEnd = tsep * 3.5;   // fixed full duration — axis never moves
+
+  const pad = { l: 36, r: 12, t: 10, b: 28 };
+  const gW = W - pad.l - pad.r;
+  const gH = H - pad.t - pad.b;
+
+  // Axes
+  ctx.strokeStyle = '#2a2f42';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + gH);
+  ctx.lineTo(pad.l + gW, pad.t + gH);
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#6b7590';
+  ctx.font = '9px JetBrains Mono';
+  ctx.fillText('E (J)', 2, pad.t + 8);
+  ctx.fillText('0', pad.l - 12, pad.t + gH + 2);
+  ctx.fillText(Em.toFixed(2), 2, pad.t + 4);
+  // t labels on X axis
+  ctx.fillText('0', pad.l - 4, pad.t + gH + 12);
+  ctx.fillText(tEnd.toFixed(2)+'s', pad.l + gW - 22, pad.t + gH + 12);
+  ctx.fillText(tsep.toFixed(2)+'s', pad.l + (tsep / tEnd) * gW - 10, pad.t + gH + 12);
+
+  // Horizontal gridline at Em
+  ctx.strokeStyle = '#1e2330';
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l + gW, pad.t);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Tsep vertical marker — always visible
+  const tx = pad.l + (tsep / tEnd) * gW;
+  ctx.strokeStyle = '#ffffff22';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(tx, pad.t); ctx.lineTo(tx, pad.t + gH); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ffffff44';
+  ctx.font = '8px JetBrains Mono';
+  ctx.fillText('x=0', tx + 3, pad.t + 10);
+
+  // Placeholder text before sim starts
+  if (history.t.length < 2) {
+    ctx.fillStyle = '#2a2f42';
+    ctx.font = '11px JetBrains Mono';
+    ctx.fillText('Inicia la simulación para ver la gráfica', pad.l + 10, pad.t + gH / 2);
+    return;
+  }
+
+  // Plot lines using fixed tEnd on X axis → lines grow left-to-right
+  function plotLine(data, color) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    for (let i = 0; i < history.t.length; i++) {
+      const px = pad.l + (history.t[i] / tEnd) * gW;
+      const py = pad.t + gH - (data[i] / Em) * gH;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  plotLine(history.Em, '#e8c84a');
+  plotLine(history.Ep, '#e84a7a');
+  plotLine(history.Ek, '#4ae8b0');
+
+  // Moving time cursor
+  const cursorX = pad.l + (simTime / tEnd) * gW;
+  ctx.strokeStyle = '#ffffff55';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cursorX, pad.t); ctx.lineTo(cursorX, pad.t + gH); ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPDATE UI
+// ═══════════════════════════════════════════════════════
+function updateAll(t) {
+  const { Ep, Ek, Em, v, x, contact } = getEnergies(t);
+
+  // Status bar
+  document.getElementById('statX').textContent  = (contact ? x : 0).toFixed(4);
+  document.getElementById('statV').textContent  = v.toFixed(3);
+  document.getElementById('statEp').textContent = Ep.toFixed(4);
+  document.getElementById('statEk').textContent = Ek.toFixed(4);
+  document.getElementById('statEm').textContent = Em.toFixed(4);
+
+  // Energy bars
+  const pct = v => Math.min(100, Math.max(0, (v / Em) * 100)).toFixed(1) + '%';
+  document.getElementById('barEp').style.width = pct(Ep);
+  document.getElementById('barEk').style.width = pct(Ek);
+  document.getElementById('barEm').style.width = '100%';
+  document.getElementById('numEp').textContent = Ep.toFixed(4) + ' J';
+  document.getElementById('numEk').textContent = Ek.toFixed(4) + ' J';
+  document.getElementById('numEm').textContent = Em.toFixed(4) + ' J';
+
+  // Time slider
+  const tsep = getTsep();
+  const tEnd = tsep * 3.5;
+  document.getElementById('timeSlider').max = 1000;
+  const pctT = Math.min(1, t / tEnd);
+  if (!manualMode) {
+    document.getElementById('timeSlider').value = Math.round(pctT * 1000);
+  }
+  document.getElementById('timeVal').textContent = 't = ' + t.toFixed(3) + ' s';
+
+  drawSim(t);
+  drawGraph();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════════
+function tick(timestamp) {
+  if (!isPlaying) return;
+  if (lastTimestamp === null) lastTimestamp = timestamp;
+  const dt = ((timestamp - lastTimestamp) / 1000) * simSpeed;
+  lastTimestamp = timestamp;
+
+  const tsep = getTsep();
+  const tEnd = tsep * 3.5;
+  simTime = Math.min(simTime + dt, tEnd);
+
+  // Record history
+  const e = getEnergies(simTime);
+  history.t.push(simTime);
+  history.Ep.push(e.Ep);
+  history.Ek.push(e.Ek);
+  history.Em.push(e.Em);
+  if (history.t.length > MAX_HIST) {
+    ['t','Ep','Ek','Em'].forEach(k => history[k].shift());
+  }
+
+  updateAll(simTime);
+
+  if (simTime >= tEnd) {
+    isPlaying = false;
+    lastTimestamp = null;
+    document.getElementById('btnPlay').textContent = '▶ PLAY';
+    return;
+  }
+
+  lastRaf = requestAnimationFrame(tick);
+}
+
+function startPlay() {
+  if (isPlaying) return;
+  isPlaying = true;
+  manualMode = false;
+  lastTimestamp = null;
+  document.getElementById('btnPlay').textContent = '⏸ PAUSA';
+  lastRaf = requestAnimationFrame(tick);
+}
+
+function pausePlay() {
+  isPlaying = false;
+  lastTimestamp = null;
+  document.getElementById('btnPlay').textContent = '▶ PLAY';
+  if (lastRaf) cancelAnimationFrame(lastRaf);
+}
+
+function resetSim() {
+  pausePlay();
+  simTime = 0;
+  manualMode = false;
+  history = { t: [], Ep: [], Ek: [], Em: [] };
+  document.getElementById('timeSlider').value = 0;
+  updateAll(0);
+  drawGraph();
+}
+
+// ═══════════════════════════════════════════════════════
+//  WOLFRAM LINKS
+// ═══════════════════════════════════════════════════════
+function buildWolframLinks() {
+  const { m, k, x0 } = params;
+  const Em   = (0.5 * k * x0 * x0).toFixed(4);
+  const vmax = (x0 * Math.sqrt(k / m)).toFixed(4);
+  const omega = Math.sqrt(k / m).toFixed(4);
+  const tsep  = (Math.PI / (2 * Math.sqrt(k / m))).toFixed(4);
+
+  const links = [
+    {
+      label: 'Energía potencial elástica: Ep = ½kx²',
+      desc: `Con k=${k} N/m, x=${x0} m → Ep = ${Em} J`,
+      query: `solve (1/2)*${k}*${x0}^2`
+    },
+    {
+      label: 'Velocidad máxima de salida: v = x₀√(k/m)',
+      desc: `Con m=${m} kg, k=${k} N/m, x₀=${x0} m → v = ${vmax} m/s`,
+      query: `${x0}*sqrt(${k}/${m})`
+    },
+    {
+      label: 'Gráfica Ep y Ek frente al tiempo',
+      desc: `SHM: Ep(t) = ½k·x₀²·cos²(ωt), Ek(t) = ½k·x₀²·sin²(ωt)`,
+      query: `plot (1/2)*${k}*${x0}^2*(cos(${omega}*t))^2 and (1/2)*${k}*${x0}^2*(sin(${omega}*t))^2 for t from 0 to ${tsep}`
+    }
+  ];
+
+  const container = document.getElementById('wolframBtns');
+  container.innerHTML = '';
+  links.forEach(l => {
+    const a = document.createElement('a');
+    a.className = 'wolfram-btn';
+    a.href = `https://www.wolframalpha.com/input?i=${encodeURIComponent(l.query)}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.innerHTML = `${l.label}<span>${l.desc}</span>`;
+    container.appendChild(a);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  PARAMETER SYNC
+// ═══════════════════════════════════════════════════════
+function syncParam(id, field, isSlider) {
+  const slider = document.getElementById('slider' + id);
+  const input  = document.getElementById('input'  + id);
+
+  const update = (val) => {
+    const v = parseFloat(val);
+    if (isNaN(v)) return;
+    params[field] = v;
+    slider.value  = v;
+    input.value   = v;
+    resetSim();
+    buildWolframLinks();
+  };
+
+  slider.addEventListener('input', e => update(e.target.value));
+  input.addEventListener('change', e => {
+    const v = Math.min(parseFloat(input.max), Math.max(parseFloat(input.min), parseFloat(e.target.value)));
+    update(v);
+  });
+}
+
+syncParam('M', 'm', true);
+syncParam('K', 'k', true);
+syncParam('X', 'x0', true);
+
+// ═══════════════════════════════════════════════════════
+//  BUTTON EVENTS
+// ═══════════════════════════════════════════════════════
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (isPlaying) pausePlay(); else startPlay();
+});
+
+document.getElementById('btnReset').addEventListener('click', resetSim);
+
+document.querySelectorAll('.speed-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    simSpeed = parseFloat(this.dataset.speed);
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Time slider manual control
+const tSlider = document.getElementById('timeSlider');
+tSlider.addEventListener('mousedown', () => { manualMode = true; pausePlay(); });
+tSlider.addEventListener('touchstart', () => { manualMode = true; pausePlay(); });
+tSlider.addEventListener('input', () => {
+  const tsep = getTsep();
+  const tEnd = tsep * 3.5;
+  simTime = (parseInt(tSlider.value) / 1000) * tEnd;
+
+  // rebuild history up to this point
+  history = { t: [], Ep: [], Ek: [], Em: [] };
+  const steps = 200;
+  for (let i = 0; i <= steps; i++) {
+    const tt = (i / steps) * simTime;
+    const e = getEnergies(tt);
+    history.t.push(tt);
+    history.Ep.push(e.Ep);
+    history.Ek.push(e.Ek);
+    history.Em.push(e.Em);
+  }
+
+  document.getElementById('timeVal').textContent = 't = ' + simTime.toFixed(3) + ' s';
+  updateAll(simTime);
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+buildWolframLinks();
+updateAll(0);
+drawGraph();
+</script>
+</body>
+</html>
